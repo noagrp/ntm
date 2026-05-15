@@ -16,7 +16,7 @@
             color: #e0e0e0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 40px 20px;
+            padding: 40px 20px 150px 20px; /* Extra bottom padding for overlay */
         }
 
         .header-title {
@@ -48,35 +48,70 @@
         .legend .m-lab { border-color: #bc13fe; }
         .legend .o-lab { border-color: #ffcc00; }
 
-        @keyframes chameleon {
-            0% { border-color: #ff3333; box-shadow: 0 0 25px rgba(255,51,51,0.2); }
-            25% { border-color: #33ff33; box-shadow: 0 0 25px rgba(51,255,51,0.2); }
-            50% { border-color: #3333ff; box-shadow: 0 0 25px rgba(51,51,255,0.2); }
-            75% { border-color: #ff33ff; box-shadow: 0 0 25px rgba(255,51,255,0.2); }
-            100% { border-color: #ff3333; box-shadow: 0 0 25px rgba(255,51,51,0.2); }
-        }
-
-        #main-clock {
-            grid-column: span 2;
-            grid-row: span 2;
-            background: rgba(0, 0, 0, 0.95);
-            border: 3px solid #fff;
-            animation: chameleon var(--chameleon-speed) infinite linear;
+        /* SCROLL ANCHOR OVERLAY */
+        #temporal-anchor {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7));
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            z-index: 9999;
+            transition: bottom 0.6s cubic-bezier(0.23, 1, 0.32, 1);
             display: flex;
-            flex-direction: row;
             align-items: center;
-            justify-content: space-around;
-            padding: 40px;
-            border-radius: 30px;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        .analog-box { width: 180px; height: 180px; border-radius: 50%; background: #000; border: 1px solid #222; position: relative; box-shadow: inset 0 0 20px #000; }
-        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; background: #fff; box-shadow: var(--neon-glow); border-radius: 10px; }
-        .hour-hand { width: 5px; height: 50px; z-index: 3; }
-        .min-hand { width: 3px; height: 75px; z-index: 2; }
-        .sec-hand { width: 1.5px; height: 80px; background: #ff0044; z-index: 1; box-shadow: none; }
-        .tick { position: absolute; width: 2px; height: 10px; background: #444; left: 50%; transform-origin: 0 90px; }
+        #temporal-anchor.active { bottom: 0; }
 
+        /* ANIMATED CLOCK ELEMENTS */
+        .anchor-analog {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            position: relative;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.8s ease 0.2s;
+        }
+
+        #temporal-anchor.active .anchor-analog { opacity: 1; transform: scale(1); }
+
+        .a-hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; background: #fff; border-radius: 4px; }
+        .a-hr { width: 4px; height: 25px; }
+        .a-mn { width: 2px; height: 35px; }
+        .a-sc { width: 1px; height: 40px; background: #ff0044; }
+
+        .anchor-data { text-align: left; }
+
+        .a-day { 
+            font-size: 1rem; 
+            letter-spacing: 4px; 
+            text-transform: uppercase; 
+            opacity: 0; 
+            transform: translateY(10px);
+            transition: all 0.5s ease 0.4s;
+        }
+        .a-time { 
+            font-size: 3rem; 
+            font-weight: 900; 
+            margin: 0; 
+            opacity: 0; 
+            transform: translateY(10px);
+            transition: all 0.5s ease 0.6s;
+        }
+
+        #temporal-anchor.active .a-day, 
+        #temporal-anchor.active .a-time { opacity: 1; transform: translateY(0); }
+
+        /* GRID LOGIC */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); grid-auto-rows: minmax(220px, auto); gap: 25px; max-width: 1800px; margin: 0 auto; }
         .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.4s ease; }
         .card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
@@ -89,11 +124,6 @@
         .fact-text { font-size: 0.95rem; color: #aaa; line-height: 1.5; }
 
         footer { text-align: center; padding: 60px 20px; opacity: 0.4; font-size: 0.8rem; line-height: 1.6; }
-
-        @media (max-width: 850px) {
-            #main-clock { grid-column: span 1; flex-direction: column; text-align: center; gap: 20px; }
-            .header-title { letter-spacing: 4px; }
-        }
     </style>
 </head>
 <body>
@@ -107,6 +137,19 @@
 
     <div class="grid" id="container"></div>
 
+    <!-- NEW TEMPORAL ANCHOR OVERLAY -->
+    <div id="temporal-anchor">
+        <div class="anchor-analog">
+            <div class="a-hand a-hr" id="ahr"></div>
+            <div class="a-hand a-mn" id="amn"></div>
+            <div class="a-hand a-sc" id="asc"></div>
+        </div>
+        <div class="anchor-data">
+            <div class="a-day" id="aday">---</div>
+            <div class="a-time" id="atime">00:00:00</div>
+        </div>
+    </div>
+
     <footer>
         <strong>TEMPORAL DATA & METHODOLOGY</strong><br>
         <strong>Pulse:</strong> Real-time relativistic drift and astronomical distance calculations based on NASA Ephemeris velocities.<br>
@@ -117,7 +160,7 @@
 
     <script>
         const facts = [
-            // PULSE (30 CARDS - High Precision Time-Functions)
+            // PULSE (30 CARDS)
             { id: 'f1', cat: 'Pulse', title: 'Galactic Drift', text: 'Distance moved with the Sun around the Galaxy center:', val: '0 km' },
             { id: 'f2', cat: 'Pulse', title: 'Earth Orbit', text: 'Distance Earth has traveled in its path around the Sun:', val: '0 km' },
             { id: 'f3', cat: 'Pulse', title: 'Light Path', text: 'Distance light has traveled in a vacuum since load:', val: '0 km' },
@@ -196,7 +239,7 @@
             { cat: 'Mirror', title: 'Iran', utc: 3.5, morning: 'Sunrise on plateau.', noon: 'Heat of the desert.', evening: 'Sunset over Zagros.', night: 'Persian stars bright.' },
             { cat: 'Mirror', title: 'Easter Island', utc: -6, morning: 'Moai facing dawn.', noon: 'Pacific sun overhead.', evening: 'Long island shadows.', night: 'Vast ocean stars.' },
 
-            // ODDITY (30 CARDS - Strictly Temporal Physics)
+            // ODDITY (30 CARDS)
             { cat: 'Oddity', title: 'Galactic Year', text: 'Time taken for the Sun to orbit the Milky Way center:', val: '~230 Myr' },
             { cat: 'Oddity', title: 'Light-Second', text: 'The specific distance light travels in exactly one second:', val: '299,792 km' },
             { cat: 'Oddity', title: 'Atomic Base', text: 'A second is defined by 9,192,631,770 vibrations of Cesium.', val: 'Constant' },
@@ -231,6 +274,8 @@
 
         const container = document.getElementById('container');
         const startTime = Date.now();
+        const anchor = document.getElementById('temporal-anchor');
+        let scrollTimeout;
 
         function getMirrorText(item) {
             const now = new Date();
@@ -245,19 +290,6 @@
             const now = new Date();
             const year = now.getFullYear();
             document.getElementById('footer-year').innerText = year;
-
-            const mainClock = document.createElement('div');
-            mainClock.className = 'card'; mainClock.id = 'main-clock';
-            mainClock.innerHTML = `<div class="analog-box" id="analog"><div class="hand hour-hand" id="hr"></div><div class="hand min-hand" id="mn"></div><div class="hand sec-hand" id="sc"></div></div>
-                <div style="text-align: right;"><div class="type-label">Precision Epoch: <span id="session-timer">0s</span></div><div id="digital-clock" style="font-size: 3.5rem; font-weight: 900; color: #fff;">00:00:00</div><div id="digital-date" style="color: #fff; opacity: 0.8; font-size: 1.2rem;">...</div></div>`;
-            container.appendChild(mainClock);
-
-            const analog = document.getElementById('analog');
-            for (let i = 1; i <= 12; i++) {
-                const tick = document.createElement('div');
-                tick.className = 'tick'; tick.style.transform = `rotate(${i * 30}deg)`;
-                analog.appendChild(tick);
-            }
 
             const processedFacts = facts.map(f => {
                 if (f.cat === 'Mirror' && f.utc !== undefined) { f.text = getMirrorText(f); f.val = "Live"; }
@@ -276,20 +308,33 @@
                 container.appendChild(card);
             });
 
+            // SCROLL LISTENER FOR ANCHOR
+            window.addEventListener('scroll', () => {
+                anchor.classList.remove('active');
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    anchor.classList.add('active');
+                }, 500); // Trigger 500ms after scroll stops
+            });
+
             update();
         }
 
         function update() {
             const now = new Date(), elapsed = (Date.now() - startTime) / 1000;
-            document.getElementById('digital-clock').innerText = now.toLocaleTimeString();
-            document.getElementById('digital-date').innerText = now.toDateString();
-            document.getElementById('session-timer').innerText = Math.floor(elapsed) + "s";
-            document.getElementById('hr').style.transform = `rotate(${30 * now.getHours() + now.getMinutes() / 2}deg)`;
-            document.getElementById('mn').style.transform = `rotate(${6 * now.getMinutes()}deg)`;
-            document.getElementById('sc').style.transform = `rotate(${6 * now.getSeconds()}deg)`;
+            
+            // Update Anchor Data
+            document.getElementById('atime').innerText = now.toLocaleTimeString();
+            document.getElementById('aday').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            
+            // Analog Hands in Anchor
+            document.getElementById('ahr').style.transform = `rotate(${30 * now.getHours() + now.getMinutes() / 2}deg)`;
+            document.getElementById('amn').style.transform = `rotate(${6 * now.getMinutes()}deg)`;
+            document.getElementById('asc').style.transform = `rotate(${6 * now.getSeconds()}deg)`;
+
             const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
             
-            // PHYSICS ENGINE (100% Constant Temporal Truth)
+            // PHYSICS ENGINE
             setVal('f1', Math.floor(elapsed * 230).toLocaleString() + " km");
             setVal('f2', Math.floor(elapsed * 29.78).toLocaleString() + " km");
             setVal('f3', Math.floor(elapsed * 299792).toLocaleString() + " km");
