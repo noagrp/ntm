@@ -3,409 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noan's Time Machine</title>
+    <title>Noan Clock</title>
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.07);
-            --neon-glow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.3);
-            --laser-red: #ff0044;
-            --laser-white: #ffffff;
+            --ultra-black: #000000;
+            --pure-white: #ffffff;
+            --laser-red: #ff0000;
+            --silver: #c0c0c0;
+            --machine-font: 'Arial Narrow', Arial, sans-serif;
         }
 
         body {
-            background: #020205;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--ultra-black);
+            color: var(--silver);
             margin: 0;
-            padding: 40px 20px 150px 20px;
-        }
-
-        .header-title {
-            text-align: center;
-            font-size: clamp(2rem, 6vw, 4rem);
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 8px;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #fff, #777);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .legend {
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto 50px auto;
+            height: 100vh;
             display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            font-size: 0.85rem;
-            opacity: 0.7;
-        }
-
-        .legend span { border-bottom: 2px solid #fff; padding-bottom: 3px; }
-        .legend .p-lab { border-color: #00f2ff; }
-        .legend .m-lab { border-color: #bc13fe; }
-        .legend .o-lab { border-color: #ffcc00; }
-
-        /* MACHINE OVERLAY */
-        #temporal-anchor {
-            position: fixed;
-            bottom: -100%;
-            left: 0;
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(to top, rgba(0,0,0,0.98), rgba(0,0,0,0.8));
-            backdrop-filter: blur(25px);
-            border-top: 1px solid rgba(255,255,255,0.15);
-            z-index: 9999;
-            transition: bottom 1.2s cubic-bezier(0.19, 1, 0.22, 1);
-            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: clamp(20px, 5vw, 60px);
-            padding: 20px;
-            box-sizing: border-box;
+            font-family: var(--machine-font);
+            overflow: hidden;
+            touch-action: none;
         }
 
-        #temporal-anchor.active { bottom: 0; }
-
-        /* FLOATING LASER HANDS - FIXED FOR MOBILE */
-        .anchor-analog {
-            width: clamp(80px, 20vw, 120px);
-            height: clamp(80px, 20vw, 120px);
+        /* CLOCK ELEMENTS */
+        #clock-container {
             position: relative;
+            width: clamp(280px, 85vw, 550px);
+            height: clamp(280px, 85vw, 550px);
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
         }
 
-        .center-hub {
-            width: 6px;
-            height: 6px;
-            background: #fff;
+        .hub {
+            width: 8px; height: 8px;
+            background: var(--pure-white);
             border-radius: 50%;
-            box-shadow: 0 0 15px #fff;
             z-index: 10;
+            box-shadow: 0 0 15px var(--pure-white);
         }
 
-        .a-hand { 
-            position: absolute; 
-            bottom: 50%; 
-            left: 50%; 
-            transform-origin: bottom; 
+        .hand {
+            position: absolute;
+            bottom: 50%; left: 50%;
+            transform-origin: bottom;
+            background: var(--pure-white);
             border-radius: 2px;
-            filter: drop-shadow(0 0 8px currentColor);
-            transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        
-        /* Adjusted heights to be percentages of parent container */
-        .a-hr { width: 4px; height: 25%; background: var(--laser-white); color: rgba(255,255,255,0.5); }
-        .a-mn { width: 2px; height: 38%; background: var(--laser-white); color: rgba(255,255,255,0.3); }
-        .a-sc { width: 1.5px; height: 45%; background: var(--laser-red); color: var(--laser-red); }
 
-        /* TEXT SCRAMBLE ASSEMBLY */
-        .anchor-data { text-align: left; min-width: 0; }
+        .hr { width: 6px; height: 28%; opacity: 1; }
+        .mn { width: 3.5px; height: 42%; opacity: 1; }
+        .sc { width: 3px; height: 48%; background: var(--pure-white); opacity: 0.25; }
 
-        .a-day { 
-            font-size: clamp(0.7rem, 2vw, 0.9rem); 
-            text-transform: uppercase; 
-            color: #00f2ff;
-            margin-bottom: 5px;
-            font-family: monospace;
-            transition: all 1.5s ease-out;
+        /* RED GHOST NUMBERS */
+        .ghost-number {
+            position: absolute;
+            font-family: var(--machine-font);
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: var(--laser-red);
+            text-shadow: 0 0 8px var(--laser-red);
+            pointer-events: none;
+            animation: sharp-fade 1s forwards;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes sharp-fade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* PADDLES */
+        .chaser {
+            position: fixed;
+            pointer-events: none;
+            font-family: var(--machine-font);
+            color: var(--pure-white);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            z-index: 100;
             white-space: nowrap;
+            padding: 10px 20px;
         }
 
-        .a-time { 
-            font-size: clamp(1.8rem, 8vw, 3.5rem); 
-            font-weight: 900; 
-            margin: 0; 
-            color: #fff;
-            font-family: 'Courier New', monospace;
-            transition: all 1.8s cubic-bezier(0.19, 1, 0.22, 1);
-            white-space: nowrap;
+        #chasing-day { letter-spacing: 5px; }
+        #chasing-date { opacity: 0.7; letter-spacing: 2px; color: var(--silver); }
+
+        /* KINETIC BALL - NO STRETCH */
+        #game-ball {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 25px;
+            height: 25px;
+            background: var(--pure-white);
+            border-radius: 50%;
+            box-shadow: 0 0 30px var(--pure-white), 0 0 10px var(--pure-white);
+            display: none; 
+            z-index: 99;
+            will-change: transform;
+            /* Stable energy glow pulsing without scale distortion */
+            animation: ball-glow-throb 0.6s infinite alternate ease-in-out;
         }
 
-        #temporal-anchor:not(.active) .a-day { letter-spacing: 15px; opacity: 0; transform: translateX(-30px); }
-        #temporal-anchor.active .a-day { letter-spacing: 4px; opacity: 1; transform: translateX(0); }
+        @keyframes ball-glow-throb {
+            from { box-shadow: 0 0 15px var(--pure-white); }
+            to { box-shadow: 0 0 35px var(--pure-white); }
+        }
 
-        #temporal-anchor:not(.active) .a-time { letter-spacing: 25px; filter: blur(15px); opacity: 0; transform: translateY(20px); }
-        #temporal-anchor.active .a-time { letter-spacing: -2px; filter: blur(0); opacity: 1; transform: translateY(0); }
+        /* EXPLOSION PARTICLES */
+        .particle {
+            position: fixed;
+            background: var(--pure-white);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 101;
+            box-shadow: 0 0 8px var(--pure-white);
+        }
 
-        /* GRID */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); grid-auto-rows: minmax(220px, auto); gap: 25px; max-width: 1800px; margin: 0 auto; }
-        .card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.4s ease; }
-        .card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
-        .pulse-card { border-top: 3px solid #00f2ff; }
-        .mirror-card { border-top: 3px solid #bc13fe; }
-        .oddity-card { border-top: 3px solid #ffcc00; }
+        #digital-time {
+            font-family: var(--machine-font);
+            font-size: clamp(3rem, 18vw, 6rem);
+            margin-top: 30px;
+            letter-spacing: -2px;
+            line-height: 0.9;
+        }
 
-        .type-label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; opacity: 0.5; letter-spacing: 1px; }
-        .value { font-size: 2.2rem; font-weight: 900; color: #fff; margin: 15px 0; font-variant-numeric: tabular-nums; }
-        .fact-text { font-size: 0.95rem; color: #aaa; line-height: 1.5; }
-
-        footer { text-align: center; padding: 60px 20px; opacity: 0.4; font-size: 0.8rem; line-height: 1.6; }
-
-        @media (max-width: 600px) {
-            #temporal-anchor { height: 150px; gap: 20px; }
-            .anchor-analog { width: 70px; height: 70px; }
+        footer {
+            position: absolute; bottom: 15px;
+            font-size: 0.6rem; opacity: 0.2; letter-spacing: 4px;
         }
     </style>
 </head>
 <body>
 
-    <h1 class="header-title">Noan's Time Machine</h1>
-    <div class="legend">
-        <span class="p-lab"><strong>PULSE:</strong> Cosmic Drift.</span>
-        <span class="m-lab"><strong>MIRROR:</strong> Solar Truth.</span>
-        <span class="o-lab"><strong>ODDITY:</strong> Universal Constants.</span>
+    <div id="game-ball"></div>
+    <div id="chasing-day" class="chaser">---</div>
+    <div id="chasing-date" class="chaser">--- 00 0000</div>
+
+    <div id="clock-container">
+        <div class="hub"></div>
+        <div id="h-hr" class="hand hr"></div>
+        <div id="h-mn" class="hand mn"></div>
+        <div id="h-sc" class="hand sc"></div>
     </div>
 
-    <div class="grid" id="container"></div>
+    <div id="digital-time">00:00</div>
 
-    <div id="temporal-anchor">
-        <div class="anchor-analog">
-            <div class="center-hub"></div>
-            <div class="a-hand a-hr" id="ahr"></div>
-            <div class="a-hand a-mn" id="amn"></div>
-            <div class="a-hand a-sc" id="asc"></div>
-        </div>
-        <div class="anchor-data">
-            <div class="a-day" id="aday">---</div>
-            <div class="a-time" id="atime">00:00:00</div>
-        </div>
-    </div>
-
-    <footer>
-        <strong>TEMPORAL DATA & METHODOLOGY</strong><br>
-        <strong>Pulse:</strong> Real-time relativistic drift and astronomical distance calculations based on NASA Ephemeris velocities.<br>
-        <strong>Mirror:</strong> Current solar status synchronized via local system UTC offset to verify regional sun position.<br>
-        <strong>Oddity:</strong> Fundamental physical constants of time as defined by the SI (International System of Units).<br>
-        &copy; <span id="footer-year"></span> Developed for the UrURL Project.
-    </footer>
+    <footer>URURL_PROJECT // SPHERE_MATRIX_V16.0</footer>
 
     <script>
-        const facts = [
-            { id: 'f1', cat: 'Pulse', title: 'Galactic Drift', text: 'Distance moved with the Sun around the Galaxy center:', val: '0 km' },
-            { id: 'f2', cat: 'Pulse', title: 'Earth Orbit', text: 'Distance Earth has traveled in its path around the Sun:', val: '0 km' },
-            { id: 'f3', cat: 'Pulse', title: 'Light Path', text: 'Distance light has traveled in a vacuum since load:', val: '0 km' },
-            { id: 'f4', cat: 'Pulse', title: 'Planetary Spin', text: 'Equatorial distance traveled via Earth rotation:', val: '0 km' },
-            { id: 'f5', cat: 'Pulse', title: 'Atomic Base', text: 'Vibrations of a Cesium atom since initialization:', val: '0' },
-            { id: 'f6', cat: 'Pulse', title: 'Moon Drift', text: 'Theoretical distance the Moon moved away (nm):', val: '0' },
-            { id: 'f7', cat: 'Pulse', title: 'Solar Burn', text: 'Tons of matter the Sun turned to energy since load:', val: '0' },
-            { id: 'f8', cat: 'Pulse', title: 'Void Expansion', text: 'New volume of space created by cosmic expansion (m³):', val: '0' },
-            { id: 'f9', cat: 'Pulse', title: 'ISS Velocity', text: 'Distance covered by the ISS in its low-Earth orbit:', val: '0 km' },
-            { id: 'f10', cat: 'Pulse', title: 'Relativity Delta', text: 'Time dilation difference vs the Earth core (ns):', val: '0' },
-            { id: 'f11', cat: 'Pulse', title: 'Andromeda Delta', text: 'Distance Andromeda galaxy moved closer to Earth:', val: '0 km' },
-            { id: 'f12', cat: 'Pulse', title: 'Jupiter Spin', text: 'Degrees the planet Jupiter has rotated in situ:', val: '0°' },
-            { id: 'f13', cat: 'Pulse', title: 'Solar Wind', text: 'Distance solar particles traveled toward the heliopause:', val: '0 km' },
-            { id: 'f14', cat: 'Pulse', title: 'Voyager 1', text: 'Distance Voyager 1 traveled in interstellar space:', val: '0 km' },
-            { id: 'f15', cat: 'Pulse', title: 'Binary Epoch', text: 'Unix timestamps ticked since you initialized:', val: '0' },
-            { id: 'f16', cat: 'Pulse', title: 'Orbital Path', text: 'Arc seconds Earth has moved in its solar trajectory:', val: '0' },
-            { id: 'f17', cat: 'Pulse', title: 'Stellar Decay', text: 'Estimated supernovae in the observable universe:', val: '0' },
-            { id: 'f18', cat: 'Pulse', title: 'Cosmic Microwave', text: 'Distance CMB photons traveled through the sector:', val: '0 km' },
-            { id: 'f19', cat: 'Pulse', title: 'Gravity Waves', text: 'Propagation distance of gravity waves across the sector:', val: '0 km' },
-            { id: 'f20', cat: 'Pulse', title: 'Venus Rotation', text: 'Percentage of a Venusian sidereal day completed:', val: '0%' },
-            { id: 'f21', cat: 'Pulse', title: 'Martian Sol', text: 'Fraction of a Martian Sol passed since arrival:', val: '0' },
-            { id: 'f22', cat: 'Pulse', title: 'Galaxy Rotation', text: 'Arc-milliseconds of the Milky Way\'s rotation:', val: '0' },
-            { id: 'f23', cat: 'Pulse', title: 'Mercury Orbit', text: 'Distance Mercury moved in its high-speed orbit:', val: '0 km' },
-            { id: 'f24', cat: 'Pulse', title: 'Sidereal Time', text: 'Accumulated difference between solar and sidereal time:', val: '0 ms' },
-            { id: 'f25', cat: 'Pulse', title: 'Halley Comet', text: 'Distance the comet traveled in its orbital cycle:', val: '0 km' },
-            { id: 'f26', cat: 'Pulse', title: 'Thermal Entropy', text: 'Theoretical entropy increase in local coordinates:', val: '0' },
-            { id: 'f27', cat: 'Pulse', title: 'Saturn Ring Flow', text: 'Distance particles in the rings moved in orbit:', val: '0 km' },
-            { id: 'f28', cat: 'Pulse', title: 'Axial Wobble', text: 'Nanometers Earth moved in its Chandler wobble:', val: '0' },
-            { id: 'f29', cat: 'Pulse', title: 'Solar core fusion', text: 'Estimated fusion events in the Sun\'s local core:', val: '0' },
-            { id: 'f30', cat: 'Pulse', title: 'Pulsar Spin', text: 'Rotations of the Crab Pulsar since page load:', val: '0' },
+        const container = document.getElementById('clock-container');
+        const dayEl = document.getElementById('chasing-day');
+        const dateEl = document.getElementById('chasing-date');
+        const ball = document.getElementById('game-ball');
+        
+        let lastSecond = -1;
+        let targetX = window.innerWidth / 2, targetY = window.innerHeight / 2;
+        let dayX = targetX, dayY = targetY;
+        let dateX = targetX, dateY = targetY;
+        
+        let ballX = window.innerWidth / 2, ballY = -100;
+        let velX = 4, velY = 4;
+        let ballActive = false;
+        const INITIAL_DELAY = 10000;
+        const COOLDOWN_DELAY = 10000;
 
-            { cat: 'Mirror', title: 'Malaysia', utc: 8, morning: 'Dawn breaks over the Malay Peninsula.', noon: 'High sun hits the rainforest canopy.', evening: 'Twilight settles over the South China Sea.', night: 'Stars align over the lights of Labuan.' },
-            { cat: 'Mirror', title: 'Singapore', utc: 8, morning: 'Sun rises over the eastern harbor.', noon: 'Vertical solar rays hit the equator.', evening: 'Shadows lengthen across the island.', night: 'The equatorial sky is deep and clear.' },
-            { cat: 'Mirror', title: 'UK', utc: 0, morning: 'Mist clears over the Prime Meridian.', noon: 'The sun is at zenith over Greenwich.', evening: 'Dusk falls on the western cliffs.', night: 'Northern stars over the Atlantic.' },
-            { cat: 'Mirror', title: 'Japan', utc: 9, morning: 'First light hits the eastern islands.', noon: 'Sun high over the Pacific arc.', evening: 'Twilight descends on the archipelago.', night: 'Moonlight silver on the calm shrines.' },
-            { cat: 'Mirror', title: 'USA (NYC)', utc: -5, morning: 'Atlantic dawn on the eastern coast.', noon: 'Midday light hits the 74th meridian.', evening: 'The city enters the shadows of sunset.', night: 'The Atlantic night is deep and cold.' },
-            { cat: 'Mirror', title: 'India', utc: 5.5, morning: 'Sunlight hits the Himalayan peaks.', noon: 'Midday intensity over the subcontinent.', evening: 'Dusk settles over the Indian Ocean.', night: 'Bright moon over the Ganges plains.' },
-            { cat: 'Mirror', title: 'China', utc: 8, morning: 'First light over the Yellow River.', noon: 'High sun over the central plains.', evening: 'Dusk falls over the historic hills.', night: 'The night spans across the provinces.' },
-            { cat: 'Mirror', title: 'South Korea', utc: 9, morning: 'Mist clearing over the eastern sea.', noon: 'Solar peak over the peninsula.', evening: 'Sunset colors the western horizon.', night: 'Stars watch over the sleeping mountains.' },
-            { cat: 'Mirror', title: 'Australia', utc: 10, morning: 'Outback wakes to a red sunrise.', noon: 'Intense heat in the southern sky.', evening: 'The sun sinks into the Indian Ocean.', night: 'The Southern Cross is vivid.' },
-            { cat: 'Mirror', title: 'Germany', utc: 1, morning: 'Light over the Black Forest.', noon: 'Sunlight over the Rhine valley.', evening: 'Shadows stretch across the plains.', night: 'Orion is high in the sky.' },
-            { cat: 'Mirror', title: 'France', utc: 1, morning: 'First light on the Mediterranean.', noon: 'Bright sun over the vineyards.', evening: 'Golden hour in the French Alps.', night: 'Midnight moon over the Seine.' },
-            { cat: 'Mirror', title: 'Italy', utc: 1, morning: 'Sunlight on the ancient stones.', noon: 'Azure sky over the coastal waters.', evening: 'Sunset over the Tyrrhenian Sea.', night: 'Moon over the olive groves.' },
-            { cat: 'Mirror', title: 'Russia', utc: 3, morning: 'Sun over the frozen taiga.', noon: 'Pale light on the northern steppes.', evening: 'Long shadows on the horizon.', night: 'Aurora dances in the north.' },
-            { cat: 'Mirror', title: 'Thailand', utc: 7, morning: 'Mist over the tropical delta.', noon: 'Turquoise water under bright sun.', evening: 'Purple skies over the Andaman.', night: 'Tropical night is warm and still.' },
-            { cat: 'Mirror', title: 'Vietnam', utc: 7, morning: 'Sun over the South Sea.', noon: 'Green valleys in bright light.', evening: 'Sunset over the Mekong delta.', night: 'Dark forests under crescent moon.' },
-            { cat: 'Mirror', title: 'Indonesia', utc: 7, morning: 'Dawn on the volcanic peaks.', noon: 'Equatorial sun overhead.', evening: 'Shadows on the rice terraces.', night: 'Archipelago rests in the dark.' },
-            { cat: 'Mirror', title: 'Philippines', utc: 8, morning: 'Sunrise across the Pacific.', noon: 'Bright light on the coral reefs.', evening: 'Sky turns pink over the bays.', night: 'Islands silent in the dark.' },
-            { cat: 'Mirror', title: 'Canada', utc: -5, morning: 'Sunrise over maple forests.', noon: 'High sun on frozen Rockies.', evening: 'Alpenglow on western peaks.', night: 'Northern lights across tundra.' },
-            { cat: 'Mirror', title: 'Brazil', utc: -3, morning: 'Sun over the Atlantic jungle.', noon: 'Amazon in full sunlight.', evening: 'Dusk over southern pampas.', night: 'Southern Cross is bright.' },
-            { cat: 'Mirror', title: 'Argentina', utc: -3, morning: 'First light on the Andes.', noon: 'Vast plains under high sun.', evening: 'Cold dusk in Patagonia.', night: 'Moonlight on the glaciers.' },
-            { cat: 'Mirror', title: 'South Africa', utc: 2, morning: 'Cape dawn over two oceans.', noon: 'Sun high over savannah.', evening: 'Orange skies over Kalahari.', night: 'Stars high in the Karoo.' },
-            { cat: 'Mirror', title: 'Egypt', utc: 2, morning: 'Sun on the eastern desert.', noon: 'Mirages in midday heat.', evening: 'Nile reflects the sunset.', night: 'Pyramids under the stars.' },
-            { cat: 'Mirror', title: 'Saudi Arabia', utc: 3, morning: 'Dawn over Rub al Khali.', noon: 'White heat of desert day.', evening: 'Sand cools at sunset.', night: 'Crystal clear desert night.' },
-            { cat: 'Mirror', title: 'UAE', utc: 4, morning: 'Sun over the Persian Gulf.', noon: 'Brilliant light on dunes.', evening: 'Violet skies over coast.', night: 'Desert night is vast.' },
-            { cat: 'Mirror', title: 'Turkey', utc: 3, morning: 'Dawn between continents.', noon: 'Midday on the plateau.', evening: 'Sunset over the Aegean.', night: 'Ships cross dark Bosphorus.' },
-            { cat: 'Mirror', title: 'Spain', utc: 1, morning: 'Mist on the north coast.', noon: 'Dry heat in central plains.', evening: 'Long summer dusk.', night: 'Breeze off Mediterranean.' },
-            { cat: 'Mirror', title: 'Mexico', utc: -6, morning: 'Sun on the Sierra Madre.', noon: 'Light over the jungles.', evening: 'Dusk in the high valley.', night: 'Ancient moon is bright.' },
-            { cat: 'Mirror', title: 'Switzerland', utc: 1, morning: 'Alps catch first light.', noon: 'Glaciers glint in sun.', evening: 'Twilight in deep valleys.', night: 'Dark peaks against stars.' },
-            { cat: 'Mirror', title: 'Norway', utc: 1, morning: 'Fjord dawn in north.', noon: 'Low sun of the arctic.', evening: 'Permanent pink dusk.', night: 'Midnight sun in summer.' },
-            { cat: 'Mirror', title: 'New Zealand', utc: 12, morning: 'The first day starts here.', noon: 'Bright sun on the ferns.', evening: 'Sunset on the Tasman Sea.', night: 'Southern stars are vivid.' },
-            { cat: 'Mirror', title: 'Greece', utc: 2, morning: 'Sun over Aegean islands.', noon: 'Light on the marble.', evening: 'Sunset behind mountains.', night: 'Ancient stars in sky.' },
-            { cat: 'Mirror', title: 'Ireland', utc: 0, morning: 'Atlantic dawn on cliffs.', noon: 'Soft light on green fields.', evening: 'Sun sets into ocean.', night: 'Misty moon in west.' },
-            { cat: 'Mirror', title: 'Netherlands', utc: 1, morning: 'Dawn over North Sea.', noon: 'Light on canal paths.', evening: 'Dusk on flat horizon.', night: 'Low stars in north.' },
-            { cat: 'Mirror', title: 'Greenland', utc: -2, morning: 'Light on the ice sheet.', noon: 'Brilliant white noon.', evening: 'Long shadows on ice.', night: 'Aurora overhead.' },
-            { cat: 'Mirror', title: 'Israel', utc: 2, morning: 'Sun over Judean hills.', noon: 'Heat in the valley.', evening: 'Sunset on the coast.', night: 'Clear desert night.' },
-            { cat: 'Mirror', title: 'Poland', utc: 1, morning: 'Dawn on Baltic coast.', noon: 'Sun on central plains.', evening: 'Twilight in forests.', night: 'Moon over Vistula.' },
-            { cat: 'Mirror', title: 'Finland', utc: 2, morning: 'Sun through the pines.', noon: 'Lake reflections.', evening: 'Long slow sunset.', night: 'Darkness and aurora.' },
-            { cat: 'Mirror', title: 'Portugal', utc: 0, morning: 'Atlantic sunrise.', noon: 'Bright sun on Algarve.', evening: 'Sunset at Europe edge.', night: 'Breeze in the dark.' },
-            { cat: 'Mirror', title: 'Denmark', utc: 1, morning: 'Pale dawn on islands.', noon: 'Cool light on the sound.', evening: 'Dusk on sandy coast.', night: 'North Star is high.' },
-            { cat: 'Mirror', title: 'Sweden', utc: 1, morning: 'Light on archipelago.', noon: 'Midday in birch woods.', evening: 'Twilight over lakes.', night: 'Northern night is cold.' },
-            { cat: 'Mirror', title: 'Chile', utc: -4, morning: 'Sun on the high Andes.', noon: 'Atacama sun intensity.', evening: 'Dusk in central valley.', night: 'Clearest stars on Earth.' },
-            { cat: 'Mirror', title: 'Austria', utc: 1, morning: 'Dawn over Danube.', noon: 'Light on snow caps.', evening: 'Sunset in Alplands.', night: 'Valley floor is dark.' },
-            { cat: 'Mirror', title: 'Belgium', utc: 1, morning: 'Mist on the Ardennes.', noon: 'Cool sun in north.', evening: 'Shadows on squares.', night: 'Low country moon.' },
-            { cat: 'Mirror', title: 'Iran', utc: 3.5, morning: 'Sunrise on plateau.', noon: 'Heat of the desert.', evening: 'Sunset over Zagros.', night: 'Persian stars bright.' },
-            { cat: 'Mirror', title: 'Easter Island', utc: -6, morning: 'Moai facing dawn.', noon: 'Pacific sun overhead.', evening: 'Long island shadows.', night: 'Vast ocean stars.' },
+        window.addEventListener('mousemove', (e) => { targetX = e.clientX; targetY = e.clientY; });
+        window.addEventListener('touchmove', (e) => { targetX = e.touches[0].clientX; targetY = e.touches[0].clientY; });
 
-            { cat: 'Oddity', title: 'Galactic Year', text: 'Time taken for the Sun to orbit the Milky Way center:', val: '~230 Myr' },
-            { cat: 'Oddity', title: 'Light-Second', text: 'The specific distance light travels in exactly one second:', val: '299,792 km' },
-            { cat: 'Oddity', title: 'Atomic Base', text: 'A second is defined by 9,192,631,770 vibrations of Cesium.', val: 'Constant' },
-            { cat: 'Oddity', title: 'Great Year', text: 'Total duration of one precession of the equinoxes:', val: '25,772 yr' },
-            { cat: 'Oddity', title: 'Planck Time', text: 'The smallest unit of time is 5.39 × 10^-44 seconds.', val: 'Minimum' },
-            { cat: 'Oddity', title: 'Unix Epoch', text: 'Starting point of Unix time: Jan 1st 1970 00:00:00 UTC.', val: 'T-Zero' },
-            { cat: 'Oddity', title: 'Entropy Arrow', text: 'Energy in a closed system moves toward disorder over time.', val: 'Time Law' },
-            { cat: 'Oddity', title: 'Relativity', text: 'Time and space are linked; gravity physically warps both.', val: '4-Dim' },
-            { cat: 'Oddity', title: 'Leap Second', text: 'Periodic adjustment to UTC to maintain solar alignment.', val: 'Sync' },
-            { cat: 'Oddity', title: 'Earth Orbit', text: 'The Earth completes one full sidereal orbit in 365.25 days.', val: 'Cycle' },
-            { id: 'f31', cat: 'Oddity', title: 'Dilation', text: 'Moving faster through space means moving slower through time.', val: 'Lorentz' },
-            { cat: 'Oddity', title: 'Solar Cycle', text: 'The periodic change in the Sun’s magnetic activity.', val: '~11 yr' },
-            { cat: 'Oddity', title: 'Binary Jiffy', text: 'Duration between ticks of a system hardware clock.', val: 'System' },
-            { cat: 'Oddity', title: 'Prime Time', text: 'Time cannot be divided into pieces smaller than a quantum.', val: 'Quantized' },
-            { cat: 'Oddity', title: 'Lunar Drift', text: 'The moon moves 3.8cm away from Earth per year.', val: 'Drift' },
-            { cat: 'Oddity', title: 'Sidereal Day', text: 'Earth rotation period relative to fixed distant stars.', val: '23h 56m' },
-            { cat: 'Oddity', title: 'Pendulum Law', text: 'Oscillation period depends only on length and gravity.', val: 'Period' },
-            { cat: 'Oddity', title: 'Decay Half-Life', text: 'Time required for a radioactive quantity to reduce by half.', val: 'τ' },
-            { cat: 'Oddity', title: 'Chronon', text: 'Proposed discrete unit of time as a temporal quantum.', val: 'Quantum' },
-            { cat: 'Oddity', title: 'Proper Time', text: 'Time measured by a clock moving along a specific worldline.', val: 'Local' },
-            { cat: 'Oddity', title: 'Event Horizon', text: 'The point where time appears to freeze to an outside observer.', val: 'Limit' },
-            { cat: 'Oddity', title: 'Biological Clock', text: 'Innate circadian rhythm synchronized to Earth\'s rotation.', val: 'Internal' },
-            { cat: 'Oddity', title: 'Metonic Cycle', text: 'Period after which the Moon\'s phases recur on same days.', val: '19 yr' },
-            { cat: 'Oddity', title: 'Saros Cycle', text: 'Predictable period for solar and lunar eclipse recurrence.', val: '18 yr' },
-            { cat: 'Oddity', title: 'GPS Offset', text: 'Relativistic time difference applied to satellite clocks.', val: 'Legit' },
-            { cat: 'Oddity', title: 'Clock Skew', text: 'The difference in time between two distinct clock sources.', val: 'Offset' },
-            { cat: 'Oddity', title: 'Deep Time', text: 'Concept of geological time measured in millions of years.', val: 'Gyr' },
-            { cat: 'Oddity', title: 'Absolute Time', text: 'Newtonian concept of time flowing equably without relation.', val: 'Classical' },
-            { cat: 'Oddity', title: 'Temporal Logic', text: 'System of rules for representing and reasoning about time.', val: 'Formal' },
-            { cat: 'Oddity', title: 'Year Progress', text: 'Completion of current calendar cycle:', val: '0%' }
-        ];
+        function createExplosion(x, y) {
+            for (let i = 0; i < 25; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 5 + 2;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                document.body.appendChild(p);
 
-        const container = document.getElementById('container');
-        const startTime = Date.now();
-        const anchor = document.getElementById('temporal-anchor');
-        const symbols = "0123456789$#!?@%&*[]<>∑∆Ωπ";
-        let scrollTimeout;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
 
-        function scramble(id, finalValue) {
-            const el = document.getElementById(id);
-            let iterations = 0;
-            const interval = setInterval(() => {
-                el.innerText = finalValue.split("")
-                    .map((char, index) => {
-                        if(index < iterations) return finalValue[index];
-                        return symbols[Math.floor(Math.random() * symbols.length)];
-                    })
-                    .join("");
-                if(iterations >= finalValue.length) clearInterval(interval);
-                iterations += 1/4;
-            }, 50);
-        }
-
-        function getMirrorText(item) {
-            const now = new Date();
-            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const targetTime = new Date(utcTime + (3600000 * item.utc));
-            const hour = targetTime.getHours();
-            let period = (hour >= 5 && hour < 11) ? 'morning' : (hour >= 11 && hour < 17) ? 'noon' : (hour >= 17 && hour < 21) ? 'evening' : 'night';
-            return `Solar Position: ${item[period]} (${targetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
-        }
-
-        function init() {
-            const now = new Date();
-            const year = now.getFullYear();
-            document.getElementById('footer-year').innerText = year;
-
-            const processedFacts = facts.map(f => {
-                if (f.cat === 'Mirror' && f.utc !== undefined) { f.text = getMirrorText(f); f.val = "Live"; }
-                if (f.title === 'Year Progress') {
-                    const diff = now - new Date(year, 0, 1);
-                    const oneYear = 1000 * 60 * 60 * 24 * (year % 4 === 0 ? 366 : 365);
-                    f.val = ((diff / oneYear) * 100).toFixed(6) + "%";
-                }
-                return f;
-            });
-
-            processedFacts.sort(() => Math.random() - 0.5).forEach(f => {
-                const card = document.createElement('div');
-                card.className = `card ${f.cat.toLowerCase()}-card`;
-                card.innerHTML = `<div class="type-label">${f.cat} // ${f.title}</div><div class="fact-text">${f.text}</div><div class="value" id="${f.id || ''}">${f.val || ''}</div>`;
-                container.appendChild(card);
-            });
-
-            window.addEventListener('scroll', () => {
-                anchor.classList.remove('active');
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    anchor.classList.add('active');
-                    scramble('aday', new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
-                }, 600);
-            });
-
-            update();
-        }
-
-        function update() {
-            const now = new Date(), elapsed = (Date.now() - startTime) / 1000;
-            if(anchor.classList.contains('active')) {
-                document.getElementById('atime').innerText = now.toLocaleTimeString();
+                let op = 1;
+                const pTick = setInterval(() => {
+                    p.style.left = parseFloat(p.style.left) + vx + 'px';
+                    p.style.top = parseFloat(p.style.top) + vy + 'px';
+                    op -= 0.025;
+                    p.style.opacity = op;
+                    if (op <= 0) {
+                        clearInterval(pTick);
+                        p.remove();
+                    }
+                }, 16);
             }
-            document.getElementById('ahr').style.transform = `rotate(${30 * now.getHours() + now.getMinutes() / 2}deg)`;
-            document.getElementById('amn').style.transform = `rotate(${6 * now.getMinutes()}deg)`;
-            document.getElementById('asc').style.transform = `rotate(${6 * now.getSeconds()}deg)`;
-
-            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
-            setVal('f1', Math.floor(elapsed * 230).toLocaleString() + " km");
-            setVal('f2', Math.floor(elapsed * 29.78).toLocaleString() + " km");
-            setVal('f3', Math.floor(elapsed * 299792).toLocaleString() + " km");
-            setVal('f4', (elapsed * 0.465).toFixed(3) + " km");
-            setVal('f5', (elapsed * 9192631770).toExponential(2));
-            setVal('f6', (elapsed * 0.0012).toFixed(6));
-            setVal('f7', Math.floor(elapsed * 4400000).toLocaleString());
-            setVal('f8', (elapsed * 1e50).toExponential(2));
-            setVal('f9', (elapsed * 7.66).toFixed(2) + " km");
-            setVal('f10', (elapsed * 0.00000002).toFixed(10));
-            setVal('f11', (elapsed * 110).toFixed(2) + " km");
-            setVal('f12', (elapsed * 0.01).toFixed(4) + "°");
-            setVal('f13', Math.floor(elapsed * 450).toLocaleString() + " km");
-            setVal('f14', (elapsed * 17).toFixed(2) + " km");
-            setVal('f15', "+" + Math.floor(elapsed));
-            setVal('f16', (elapsed * 0.04).toFixed(3));
-            setVal('f17', (elapsed * 0.03).toFixed(2));
-            setVal('f18', Math.floor(elapsed * 299792).toLocaleString() + " km");
-            setVal('f19', Math.floor(elapsed * 299792).toLocaleString() + " km");
-            setVal('f20', (elapsed / 209952).toExponential(4) + "%");
-            setVal('f21', (elapsed / 88775).toExponential(4));
-            setVal('f22', (elapsed * 0.00001).toFixed(5));
-            setVal('f23', (elapsed * 47).toFixed(2) + " km");
-            setVal('f24', (elapsed * 0.0027).toFixed(4) + " ms");
-            setVal('f25', (elapsed * 20).toFixed(2) + " km");
-            setVal('f26', (elapsed * 1e-12).toExponential(4));
-            setVal('f27', Math.floor(elapsed * 15).toLocaleString() + " km");
-            setVal('f28', (elapsed * 0.01).toFixed(3));
-            setVal('f29', (elapsed * 1e38).toExponential(2));
-            setVal('f30', Math.floor(elapsed * 30).toLocaleString());
-            setVal('f31', (elapsed * 0.000000001).toFixed(10));
-            requestAnimationFrame(update);
         }
-        init();
+
+        function triggerReset() {
+            ballActive = false;
+            ball.style.display = 'none';
+            setTimeout(() => {
+                ballY = -30;
+                ballX = Math.random() * (window.innerWidth - 100) + 50;
+                velY = Math.abs(velY);
+                ball.style.display = 'block';
+                ballActive = true;
+            }, COOLDOWN_DELAY);
+        }
+
+        function processDualSurfacePhysics(paddle) {
+            const rect = paddle.getBoundingClientRect();
+            const bR = 12.5;
+            const bCX = ballX + bR;
+            const bCY = ballY + bR;
+
+            if (bCX > rect.left && bCX < rect.right) {
+                if (velY > 0 && (bCY + bR) >= rect.top && bCY < rect.top + (rect.height / 2)) {
+                    velY = -Math.abs(velY);
+                    ballY = rect.top - (bR * 2) - 1; 
+                    return true;
+                }
+                if (velY < 0 && (bCY - bR) <= rect.bottom && bCY > rect.top + (rect.height / 2)) {
+                    velY = Math.abs(velY);
+                    ballY = rect.bottom + 1; 
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        setTimeout(() => { 
+            ballActive = true; 
+            ball.style.display = 'block'; 
+        }, INITIAL_DELAY);
+
+        function tick() {
+            const now = new Date();
+            const s = now.getSeconds(), m = now.getMinutes(), h = now.getHours();
+
+            document.getElementById('h-hr').style.transform = `rotate(${30 * h + m / 2}deg)`;
+            document.getElementById('h-mn').style.transform = `rotate(${6 * m}deg)`;
+            document.getElementById('h-sc').style.transform = `rotate(${6 * s}deg)`;
+            document.getElementById('digital-time').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+            const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+            dayEl.innerText = days[now.getDay()];
+            dateEl.innerText = `${monthNames[now.getMonth()]} ${now.getDate()} ${now.getFullYear()}`;
+
+            dayX += (targetX - dayX) * 0.1;
+            dayY += (targetY - dayY) * 0.1;
+            dateX += (targetX - dateX) * 0.07;
+            dateY += (targetY - dateY) * 0.07;
+
+            dayEl.style.left = `${dayX - (dayEl.offsetWidth / 2)}px`;
+            dayEl.style.top = `${dayY - 40}px`;
+            dateEl.style.left = `${dateX - (dateEl.offsetWidth / 2)}px`;
+            dateEl.style.top = `${dateY + 20}px`;
+
+            if (ballActive) {
+                ballX += velX;
+                ballY += velY;
+
+                if (ballX <= 0 || ballX >= window.innerWidth - 25) velX *= -1;
+                if (ballY <= 0) velY = Math.abs(velY);
+
+                processDualSurfacePhysics(dayEl);
+                processDualSurfacePhysics(dateEl);
+
+                if (ballY > window.innerHeight - 25) {
+                    createExplosion(ballX + 12, ballY + 12);
+                    triggerReset();
+                }
+
+                // Perfect sphere translation without dynamic stretch transformations
+                ball.style.transform = `translate3d(${ballX}px, ${ballY}px, 0)`;
+            }
+
+            if (s !== lastSecond) {
+                spawnOppositeSharp(s);
+                lastSecond = s;
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function spawnOppositeSharp(currentSec) {
+            const num = document.createElement('div');
+            num.className = 'ghost-number';
+            num.innerText = currentSec.toString().padStart(2, '0');
+            const oppositeAngle = (currentSec * 6 + 180) % 360;
+            const rect = container.getBoundingClientRect();
+            const radius = rect.width * 0.38, centerX = rect.width / 2, centerY = rect.height / 2;
+            const rad = (oppositeAngle - 90) * (Math.PI / 180);
+            num.style.left = `${centerX + radius * Math.cos(rad)}px`;
+            num.style.top = `${centerY + radius * Math.sin(rad)}px`;
+            container.appendChild(num);
+            setTimeout(() => num.remove(), 1000);
+        }
+
+        tick();
     </script>
 </body>
 </html>
