@@ -22,9 +22,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-family: var(--machine-font);
             overflow: hidden;
             touch-action: none;
+            font-family: var(--machine-font);
         }
 
         /* CLOCK ELEMENTS */
@@ -107,7 +107,6 @@
             display: none; 
             z-index: 99;
             will-change: transform;
-            /* Stable energy glow pulsing without scale distortion */
             animation: ball-glow-throb 0.6s infinite alternate ease-in-out;
         }
 
@@ -126,10 +125,27 @@
             box-shadow: 0 0 8px var(--pure-white);
         }
 
+        /* SCOREBOARD BOARD AND DIGITAL CORNER */
+        #game-scoreboard {
+            font-family: var(--machine-font);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 15px;
+            color: var(--silver);
+            display: flex;
+            gap: 20px;
+        }
+
+        #game-scoreboard span {
+            color: var(--pure-white);
+            font-weight: bold;
+        }
+
         #digital-time {
             font-family: var(--machine-font);
             font-size: clamp(3rem, 18vw, 6rem);
-            margin-top: 30px;
+            margin-top: 5px;
             letter-spacing: -2px;
             line-height: 0.9;
         }
@@ -153,6 +169,11 @@
         <div id="h-sc" class="hand sc"></div>
     </div>
 
+    <div id="game-scoreboard">
+        <div>Score: <span id="score-val">0</span></div>
+        <div>Level: <span id="level-val">1</span></div>
+    </div>
+
     <div id="digital-time">00:00</div>
 
     <footer>Noan Clock</footer>
@@ -162,6 +183,8 @@
         const dayEl = document.getElementById('chasing-day');
         const dateEl = document.getElementById('chasing-date');
         const ball = document.getElementById('game-ball');
+        const scoreValEl = document.getElementById('score-val');
+        const levelValEl = document.getElementById('level-val');
         
         let lastSecond = -1;
         let targetX = window.innerWidth / 2, targetY = window.innerHeight / 2;
@@ -169,10 +192,17 @@
         let dateX = targetX, dateY = targetY;
         
         let ballX = window.innerWidth / 2, ballY = -100;
-        let velX = 4, velY = 4;
+        
+        // Base Game System Variables
+        const BASE_SPEED = 4;
+        let velX = BASE_SPEED, velY = BASE_SPEED;
         let ballActive = false;
         const INITIAL_DELAY = 10000;
         const COOLDOWN_DELAY = 10000;
+
+        let score = 0;
+        let level = 1;
+        let successfulFetches = 0;
 
         window.addEventListener('mousemove', (e) => { targetX = e.clientX; targetY = e.clientY; });
         window.addEventListener('touchmove', (e) => { targetX = e.touches[0].clientX; targetY = e.touches[0].clientY; });
@@ -210,13 +240,47 @@
         function triggerReset() {
             ballActive = false;
             ball.style.display = 'none';
+            
+            // Fetch failed completely: Clear game stats and drop speeds to tier 1 basics
+            score = 0;
+            level = 1;
+            successfulFetches = 0;
+            scoreValEl.innerText = score;
+            levelValEl.innerText = level;
+
             setTimeout(() => {
                 ballY = -30;
                 ballX = Math.random() * (window.innerWidth - 100) + 50;
-                velY = Math.abs(velY);
+                
+                // Recalculate basic speed magnitudes
+                const speedModifier = 1 + (level - 1) * 0.15; 
+                velX = (velX > 0 ? 1 : -1) * BASE_SPEED * speedModifier;
+                velY = BASE_SPEED * speedModifier; 
+                
                 ball.style.display = 'block';
                 ballActive = true;
             }, COOLDOWN_DELAY);
+        }
+
+        function handleSuccessfulBounce() {
+            score += 10;
+            successfulFetches += 1;
+            scoreValEl.innerText = score;
+
+            // 10 successful fetches upgrades the level mechanics
+            if (successfulFetches >= 10) {
+                level += 1;
+                successfulFetches = 0;
+                levelValEl.innerText = level;
+                
+                // Scale up speeds linearly by 15% compounded base on target multiplier thresholds
+                const currentDirectionX = velX > 0 ? 1 : -1;
+                const currentDirectionY = velY > 0 ? 1 : -1;
+                const speedModifier = 1 + (level - 1) * 0.15;
+
+                velX = currentDirectionX * BASE_SPEED * speedModifier;
+                velY = currentDirectionY * BASE_SPEED * speedModifier;
+            }
         }
 
         function processDualSurfacePhysics(paddle) {
@@ -229,11 +293,13 @@
                 if (velY > 0 && (bCY + bR) >= rect.top && bCY < rect.top + (rect.height / 2)) {
                     velY = -Math.abs(velY);
                     ballY = rect.top - (bR * 2) - 1; 
+                    handleSuccessfulBounce();
                     return true;
                 }
                 if (velY < 0 && (bCY - bR) <= rect.bottom && bCY > rect.top + (rect.height / 2)) {
                     velY = Math.abs(velY);
                     ballY = rect.bottom + 1; 
+                    handleSuccessfulBounce();
                     return true;
                 }
             }
@@ -284,7 +350,6 @@
                     triggerReset();
                 }
 
-                // Perfect sphere translation without dynamic stretch transformations
                 ball.style.transform = `translate3d(${ballX}px, ${ballY}px, 0)`;
             }
 
